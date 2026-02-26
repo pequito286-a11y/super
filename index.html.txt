@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pequito Lovers & ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #fdfdfd; user-select: none; }
+        .pequito-gradient { background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); }
+        .animate-pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .card-img { width: 100%; height: 140px; object-fit: cover; }
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="pb-32">
+
+    <div id="welcome-screen" class="fixed inset-0 bg-white z-[150] flex flex-col items-center justify-center p-10 text-center space-y-8">
+        <div class="pequito-gradient w-24 h-24 rounded-[40px] flex items-center justify-center text-5xl shadow-2xl text-white font-black italic">P</div>
+        <h2 class="text-3xl font-black text-slate-800 uppercase italic">Pequito Mix</h2>
+        <div class="w-full space-y-4">
+            <button onclick="entrarModo('cliente')" class="w-full pequito-gradient text-white py-6 rounded-[30px] font-black uppercase text-xs shadow-xl">Soy Pequito Lover 😍</button>
+            <button onclick="entrarModo('admin')" class="w-full bg-slate-100 text-slate-400 py-5 rounded-[30px] font-black uppercase text-[10px]">Acceso Personal 🔒</button>
+        </div>
+    </div>
+
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[140] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm p-10 rounded-[50px] shadow-2xl text-center space-y-6">
+            <h2 class="text-xl font-black text-slate-800 uppercase italic">PIN de Acceso</h2>
+            <select id="login-user" class="w-full p-4 bg-slate-50 rounded-2xl font-bold border-none outline-none"></select>
+            <input id="login-pass" type="password" inputmode="numeric" placeholder="••••" class="w-full p-5 bg-slate-50 rounded-3xl text-center font-black text-3xl tracking-widest outline-none">
+            <button onclick="intentarLogin()" class="w-full pequito-gradient text-white py-6 rounded-[30px] font-black uppercase text-[10px]">Ingresar</button>
+            <button onclick="location.reload()" class="text-slate-400 font-bold text-[10px]">VOLVER</button>
+        </div>
+    </div>
+
+    <header id="app-header" class="hidden pequito-gradient p-8 rounded-b-[50px] shadow-2xl text-white sticky top-0 z-40">
+        <div class="flex justify-between items-center">
+            <div><h1 class="text-2xl font-black italic tracking-tighter uppercase">Pequito</h1><p id="role-tag" class="text-[9px] font-bold uppercase opacity-80"></p></div>
+            <button onclick="location.reload()" class="bg-white/20 p-3 rounded-2xl text-[9px] font-black uppercase">Salir</button>
+        </div>
+        <div id="meta-panel" class="hidden mt-4 bg-black/10 p-4 rounded-3xl border border-white/10">
+            <div class="flex justify-between text-[9px] font-black uppercase mb-1"><span>Venta Hoy</span><span id="txt-meta">S/ 0</span></div>
+            <div class="w-full h-2 bg-black/20 rounded-full overflow-hidden"><div id="bar-meta" class="h-full bg-white" style="width: 0%"></div></div>
+        </div>
+    </header>
+
+    <main id="sec-lovers" class="hidden px-6 pt-10 pb-40">
+        <h2 class="text-4xl font-black text-slate-800 italic uppercase mb-8">Pequito<br><span class="text-orange-600">Lovers</span></h2>
+        <div class="bg-white p-4 rounded-[30px] shadow-lg border mb-8 flex items-center gap-3">
+            <span>🔍</span><input type="text" id="bus-lovers" onkeyup="renderLovers()" placeholder="Buscar snack..." class="w-full font-bold outline-none text-sm">
+        </div>
+        <div id="grid-lovers" class="grid grid-cols-2 gap-5"></div>
+    </main>
+
+    <div id="cart-float" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 animate-pop">
+        <button onclick="abrirForm('checkout')" class="w-full pequito-gradient text-white p-5 rounded-[35px] shadow-2xl flex justify-between items-center">
+            <div class="text-left"><p id="cart-count" class="text-[10px] font-black uppercase">0 Items</p><p id="cart-total" class="text-xl font-black">S/ 0.00</p></div>
+            <span class="bg-white text-orange-600 px-5 py-3 rounded-2xl font-black uppercase text-[10px]">PEDIR 📲</span>
+        </button>
+    </div>
+
+    <main id="app-main" class="hidden px-6 mt-8">
+        <section id="sec-home" class="section-app space-y-6">
+            <div id="lista-clientes" class="grid gap-4"></div>
+            <button onclick="abrirForm('cliente')" class="fixed bottom-32 right-8 pequito-gradient text-white w-16 h-16 rounded-full shadow-2xl text-3xl font-black z-30">+</button>
+        </section>
+        <section id="sec-stock" class="section-app hidden space-y-6">
+            <div id="admin-despacho" class="hidden bg-slate-900 p-8 rounded-[40px] text-white space-y-4">
+                <h3 class="text-[10px] font-black uppercase text-orange-500">🚚 Carga Furgón</h3>
+                <select id="t-socio" class="w-full p-4 bg-slate-800 rounded-2xl text-white text-xs"></select>
+                <select id="t-pro" class="w-full p-4 bg-slate-800 rounded-2xl text-white text-xs"></select>
+                <div class="flex gap-2">
+                    <input id="t-cant" type="number" placeholder="Cant." class="w-1/3 p-4 bg-slate-800 rounded-2xl text-center">
+                    <button onclick="ejecutarDespacho()" class="w-2/3 bg-orange-600 rounded-2xl font-black text-[10px] uppercase">Enviar</button>
+                </div>
+            </div>
+            <div id="lista-stock" class="grid grid-cols-2 gap-4"></div>
+            <button id="btn-add-pro" onclick="abrirForm('producto')" class="hidden w-full p-6 border-2 border-dashed rounded-[35px] text-slate-400 font-black text-[10px]">+ NUEVO SNACK</button>
+        </section>
+        <section id="sec-rep" class="section-app hidden space-y-6">
+            <div class="bg-white p-10 rounded-[45px] shadow-sm border text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase italic">Venta Total</p>
+                <p id="r-ventas" class="text-4xl font-black text-slate-800">S/ 0.00</p>
+            </div>
+            <button onclick="generarPDFProfesional()" class="w-full bg-slate-900 text-white p-5 rounded-3xl font-black text-[10px] uppercase">📄 Liquidación PDF</button>
+            <div id="qrcode" class="flex justify-center p-4 bg-white rounded-3xl border hidden admin-only mx-auto"></div>
+            <button onclick="generarQR()" class="admin-only hidden w-full py-4 text-slate-400 font-black text-[9px] uppercase">Generar QR Catálogo</button>
+        </section>
+    </main>
+
+    <nav id="app-nav" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t px-8 py-5 flex justify-around items-center z-40 rounded-t-[40px] shadow-2xl">
+        <button onclick="tab('home')">🏠</button><button onclick="tab('stock')">📦</button><button onclick="tab('rep')">💰</button>
+    </nav>
+
+    <div id="m-cont" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] hidden flex items-end">
+        <div class="bg-white w-full rounded-t-[50px] p-8 animate-pop overflow-y-auto max-h-[90vh]">
+            <h2 id="m-tit" class="text-xl font-black italic uppercase mb-6"></h2>
+            <div id="m-body" class="space-y-4"></div>
+            <div class="flex gap-4 mt-8">
+                <button onclick="cerrarM()" class="flex-1 py-4 bg-slate-100 rounded-2xl font-black text-xs">ATRÁS</button>
+                <button id="m-save" class="flex-[2] pequito-gradient text-white py-4 rounded-2xl font-black text-xs uppercase shadow-lg">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // --- BASE DE DATOS ---
+        const initialDB = {
+            config: { meta: 5000, pAdmin: "1234", pSocio: "0000", wa: "51934633112" },
+            productos: [
+                { n: "CHAPLIN", pU: 1.0, s: 100, img: "" },
+                { n: "TOK PICANTE", pU: 1.2, s: 100, img: "" }
+            ],
+            clientes: [{ n: "BODEGA EJEMPLO", d: "AV. SIEMPRE VIVA 123", deuda: 0 }],
+            ventas: [], socios: [{ n: "RONALD", zona: "RUTA 1", inv: {} }]
+        };
+
+        let DB = JSON.parse(localStorage.getItem('PEQUITO_DB_V40')) || initialDB;
+        let userActivo = null;
+        let carrito = [];
+        const save = () => localStorage.setItem('PEQUITO_DB_V40', JSON.stringify(DB));
+
+        // --- NAVEGACIÓN ---
+        function entrarModo(m) {
+            document.getElementById('welcome-screen').classList.add('hidden');
+            if(m === 'cliente') { document.getElementById('sec-lovers').classList.remove('hidden'); renderLovers(); }
+            else { document.getElementById('login-screen').classList.remove('hidden'); renderLoginOptions(); }
+        }
+
+        function renderLoginOptions() {
+            const sel = document.getElementById('login-user');
+            sel.innerHTML = `<option value="ADMIN">PEDRO (ADMIN)</option>` + DB.socios.map(s => `<option value="${s.n}">${s.n}</option>`).join('');
+        }
+
+        function intentarLogin() {
+            const user = document.getElementById('login-user').value;
+            const pass = document.getElementById('login-pass').value;
+            if(user === 'ADMIN' && pass === DB.config.pAdmin) userActivo = { n: 'ADMIN', rol: 'ADMIN' };
+            else {
+                const s = DB.socios.find(soc => soc.n === user);
+                if(s && pass === DB.config.pSocio) userActivo = { n: s.n, rol: 'SOCIO', socio: s };
+                else return alert("PIN Incorrecto");
+            }
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-header').classList.remove('hidden');
+            document.getElementById('app-main').classList.remove('hidden');
+            document.getElementById('app-nav').classList.remove('hidden');
+            document.getElementById('role-tag').innerText = `${userActivo.rol}: ${userActivo.n}`;
+            syncAdminUI(); tab('home');
+        }
+
+        function syncAdminUI() {
+            const isA = userActivo.rol === 'ADMIN';
+            document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden', !isA));
+            document.getElementById('admin-despacho').classList.toggle('hidden', !isA);
+            document.getElementById('btn-add-pro').classList.toggle('hidden', !isA);
+            document.getElementById('meta-panel').classList.toggle('hidden', !isA);
+        }
+
+        function tab(id) {
+            document.querySelectorAll('.section-app').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`sec-${id}`).classList.remove('hidden');
+            if(id === 'home') renderClientes();
+            if(id === 'stock') renderStock();
+            if(id === 'rep') renderBalance();
+        }
+
+        // --- CLIENTES & CARRITO ---
+        function renderLovers() {
+            const bus = document.getElementById('bus-lovers').value.toUpperCase();
+            const cont = document.getElementById('grid-lovers');
+            cont.innerHTML = '';
+            DB.productos.filter(p => p.n.includes(bus)).forEach(p => {
+                cont.innerHTML += `
+                    <div class="bg-white rounded-[30px] shadow-lg overflow-hidden animate-pop flex flex-col border">
+                        <img src="${p.img || 'https://via.placeholder.com/200?text=SNACK'}" class="card-img">
+                        <div class="p-4 flex flex-col flex-1">
+                            <h4 class="font-black text-slate-800 uppercase text-[10px] mb-1">${p.n}</h4>
+                            <p class="text-orange-600 font-black text-xs mb-3">S/ ${p.pU.toFixed(2)}</p>
+                            <button onclick="agregarCarrito('${p.n}', ${p.pU})" class="pequito-gradient text-white py-3 rounded-2xl font-black text-[9px] uppercase">Añadir +</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function agregarCarrito(n, p) {
+            carrito.push({ n, p });
+            document.getElementById('cart-float').classList.remove('hidden');
+            const total = carrito.reduce((acc, i) => acc + i.p, 0);
+            document.getElementById('cart-count').innerText = `${carrito.length} Items`;
+            document.getElementById('cart-total').innerText = `S/ ${total.toFixed(2)}`;
+            confetti({ particleCount: 30, spread: 60, origin: { y: 0.8 } });
+        }
+
+        // --- ADMINISTRACIÓN ---
+        function renderClientes() {
+            document.getElementById('lista-clientes').innerHTML = DB.clientes.map((c, i) => `
+                <div class="bg-white p-6 rounded-[35px] border shadow-sm flex justify-between items-center">
+                    <div><h4 class="font-black text-slate-800 text-xs uppercase">${c.n}</h4><p class="text-[9px] text-slate-400 font-bold">${c.d}</p></div>
+                    <button onclick="abrirForm('venta', ${i})" class="bg-orange-50 p-4 rounded-2xl text-xl">🛒</button>
+                </div>
+            `).join('');
+        }
+
+        function renderStock() {
+            const isA = userActivo.rol === 'ADMIN';
+            const cont = document.getElementById('lista-stock');
+            cont.innerHTML = '';
+            DB.productos.forEach((p, i) => {
+                let stock = isA ? p.s : (userActivo.socio.inv[p.n] || 0);
+                cont.innerHTML += `
+                    <div class="bg-white rounded-[30px] border overflow-hidden animate-pop">
+                        <img src="${p.img || 'https://via.placeholder.com/200?text=FOTO'}" class="card-img">
+                        <div class="p-4 text-center">
+                            <p class="font-black text-slate-800 uppercase text-[9px] mb-1">${p.n}</p>
+                            <p class="text-[10px] font-bold text-orange-600">Disp: ${stock}</p>
+                            ${isA ? `<button onclick="abrirForm('producto', ${i})" class="mt-2 bg-slate-50 text-[9px] p-2 rounded-xl">Editar ✏️</button>` : ''}
+                        </div>
+                    </div>`;
+            });
+            if(isA) {
+                document.getElementById('t-socio').innerHTML = DB.socios.map((s, idx) => `<option value="${idx}">${s.n}</option>`).join('');
+                document.getElementById('t-pro').innerHTML = DB.productos.map(p => `<option value="${p.n}">${p.n}</option>`).join('');
+            }
+        }
+
+        function abrirForm(tipo, idx = null) {
+            const body = document.getElementById('m-body');
+            const tit = document.getElementById('m-tit');
+            const saveBtn = document.getElementById('m-save');
+            document.getElementById('m-cont').classList.remove('hidden');
+            body.innerHTML = ''; saveBtn.classList.remove('hidden');
+
+            if(tipo === 'checkout') {
+                tit.innerText = "Finalizar Pedido";
+                body.innerHTML = `<input id="cli-nom" placeholder="Tu Nombre" class="w-full p-5 bg-slate-50 rounded-3xl font-bold border-none outline-none"><input id="cli-dir" placeholder="Dirección de Entrega" class="w-full p-5 bg-slate-50 rounded-3xl font-bold border-none outline-none">`;
+                saveBtn.innerText = "Enviar WhatsApp";
+                saveBtn.onclick = () => {
+                    const n = document.getElementById('cli-nom').value;
+                    const d = document.getElementById('cli-dir').value;
+                    if(!n || !d) return alert("Completa tus datos");
+                    let msg = `🚀 *PEDIDO PEQUITO*\n👤 *Cliente:* ${n}\n📍 *Dir:* ${d}\n\n`;
+                    const resumen = carrito.reduce((acc, i) => { acc[i.n] = (acc[i.n] || 0) + 1; return acc; }, {});
+                    for(const p in resumen) msg += `📦 *${resumen[p]}x* ${p}\n`;
+                    window.open(`https://wa.me/${DB.config.wa}?text=${encodeURIComponent(msg)}`, '_blank');
+                    carrito = []; document.getElementById('cart-float').classList.add('hidden'); cerrarM();
+                };
+            }
+
+            if(tipo === 'producto') {
+                const p = idx !== null ? DB.productos[idx] : { n:'', pU:1.0, s:0, img:'' };
+                tit.innerText = "Configurar Snack";
+                body.innerHTML = `
+                    <div class="flex flex-col items-center mb-4">
+                        <div class="relative w-28 h-28 bg-slate-100 rounded-[30px] overflow-hidden border shadow-md">
+                            <img id="m-prev" src="${p.img || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
+                            <label class="absolute inset-0 flex items-center justify-center bg-black/10 cursor-pointer text-2xl">📸<input type="file" id="m-file" accept="image/*" capture="environment" class="hidden"></label>
+                        </div>
+                        <input type="hidden" id="m-img-val" value="${p.img}">
+                    </div>
+                    <input id="m-n" placeholder="Nombre" value="${p.n}" class="w-full p-4 bg-slate-50 rounded-2xl font-bold uppercase">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input id="m-pu" type="number" step="0.1" value="${p.pU}" placeholder="Precio" class="p-4 bg-slate-50 rounded-2xl">
+                        <input id="m-s" type="number" value="${p.s}" placeholder="Stock" class="p-4 bg-slate-900 text-white rounded-2xl">
+                    </div>`;
+                document.getElementById('m-file').onchange = (e) => {
+                    const reader = new FileReader(); reader.readAsDataURL(e.target.files[0]);
+                    reader.onload = (re) => {
+                        const img = new Image(); img.src = re.target.result;
+                        img.onload = () => {
+                            const can = document.createElement('canvas'); const max = 400; let w = img.width, h = img.height;
+                            if (w > h) { if (w > max) { h *= max / w; w = max; } } else { if (h > max) { w *= max / h; h = max; } }
+                            can.width = w; can.height = h; can.getContext('2d').drawImage(img, 0, 0, w, h);
+                            const url = can.toDataURL('image/jpeg', 0.6);
+                            document.getElementById('m-prev').src = url; document.getElementById('m-img-val').value = url;
+                        };
+                    };
+                };
+                saveBtn.onclick = () => {
+                    const data = { n: document.getElementById('m-n').value.toUpperCase(), pU: parseFloat(document.getElementById('m-pu').value), s: parseInt(document.getElementById('m-s').value), img: document.getElementById('m-img-val').value };
+                    if(idx !== null) DB.productos[idx] = data; else DB.productos.push(data);
+                    save(); cerrarM(); renderStock();
+                };
+            }
+            
+            if(tipo === 'venta') {
+                tit.innerText = "Registrar Venta";
+                body.innerHTML = `
+                    <select id="v-pro" class="w-full p-4 bg-slate-50 rounded-2xl font-bold">${DB.productos.map(p => `<option value="${p.n}">${p.n}</option>`).join('')}</select>
+                    <select id="v-pres" class="w-full p-4 bg-slate-50 rounded-2xl font-bold"><option value="Unidad">Por Unidad</option><option value="Caja">Por Caja</option></select>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="realizarVenta('Efectivo', ${idx})" class="bg-green-600 text-white p-5 rounded-2xl font-black text-[10px] uppercase">💵 Efectivo</button>
+                        <button onclick="realizarVenta('Yape', ${idx})" class="bg-purple-600 text-white p-5 rounded-2xl font-black text-[10px] uppercase">🟣 Yape</button>
+                    </div>`;
+                saveBtn.classList.add('hidden');
+            }
+        }
+
+        function realizarVenta(t, cliIdx) {
+            const pNom = document.getElementById('v-pro').value;
+            const pres = document.getElementById('v-pres').value;
+            const pro = DB.productos.find(p => p.n === pNom);
+            const inv = userActivo.rol === 'ADMIN' ? pro : userActivo.socio.inv;
+            let c = pres === 'Caja' ? 24 : 1;
+            let s = pres === 'Caja' ? 22 : pro.pU;
+            let actual = userActivo.rol === 'ADMIN' ? pro.s : (inv[pNom] || 0);
+
+            if (actual >= c) {
+                if(userActivo.rol === 'ADMIN') pro.s -= c; else inv[pNom] -= c;
+                DB.ventas.push({ f: new Date().toLocaleString(), c: DB.clientes[cliIdx].n, p: pNom, s: s, t: t, v: userActivo.n });
+                save(); cerrarM(); alert("Venta Exitosa");
+            } else alert("Sin stock suficiente");
+        }
+
+        function cerrarM() { document.getElementById('m-cont').classList.add('hidden'); }
+        function renderBalance() {
+            const vts = userActivo.rol === 'ADMIN' ? DB.ventas : DB.ventas.filter(v => v.v === userActivo.n);
+            const total = vts.reduce((a, b) => a + b.s, 0);
+            document.getElementById('r-ventas').innerText = `S/ ${total.toFixed(2)}`;
+            if(userActivo.rol === 'ADMIN') document.getElementById('txt-meta').innerText = `S/ ${total.toFixed(0)} / S/ ${DB.config.meta}`;
+        }
+        function ejecutarDespacho() {
+            const sIdx = document.getElementById('t-socio').value;
+            const pNom = document.getElementById('t-pro').value;
+            const cant = parseInt(document.getElementById('t-cant').value);
+            const pro = DB.productos.find(p => p.n === pNom);
+            if(pro.s >= cant) {
+                pro.s -= cant; DB.socios[sIdx].inv[pNom] = (DB.socios[sIdx].inv[pNom] || 0) + cant;
+                save(); renderStock(); alert("Despacho OK");
+            } else alert("Sin stock global");
+        }
+        function generarQR() {
+            const qrDiv = document.getElementById("qrcode"); qrDiv.classList.remove('hidden'); qrDiv.innerHTML = "";
+            new QRCode(qrDiv, { text: window.location.href, width: 128, height: 128, colorDark : "#ea580c" });
+        }
+    </script>
+</body>
+</html>
